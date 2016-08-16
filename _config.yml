@@ -3,8 +3,8 @@ title:       Petro Rovenskyy
 email:       petro.rovenskyy@gmail.com
 author:      Petro Rovenskyy
 description: "Блог присвячений програмуванню на Swift, Objective-C, Node.js, Sails.js"
-baseurl:     "/blog"
-url:         "http://3a4oT.github.io"
+baseurl:     ""
+url:         "http://rovenskyy.com"
 date_format: "%b %-d, %Y"
 
 # Google analytics
