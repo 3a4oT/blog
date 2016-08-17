@@ -1,0 +1,12 @@
+#!/bin/bash
+  cd _site
+  git init
+
+  git config user.name  "Travis CI"
+  git config user.email "petro.rovenskyy@gmail.com"
+
+  git add .
+  git commit -m "Deploy"
+  # We redirect any output to
+  # /dev/null to hide any sensitive credential data that might otherwise be exposed.
+  git push --force --quiet "https://${GITHUB_TOKEN}@$github.com/${GITHUB_REPO}.git" gh-pages > /dev/null 2>&1
