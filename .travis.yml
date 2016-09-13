@@ -1,32 +1,25 @@
 language: ruby
 rvm:
-- 2.1
-
-before_script:
- - chmod +x ./scripts/cibuild # or do this locally and commit
- - chmod +x ./scripts/deploy
-
-# Assume bundler is being used, therefore
-# the `install` step will run `bundle install` by default.
-script: ./scripts/cibuild
-
-# branch whitelist, only for GitHub Pages
+  - 2.1
 branches:
   only:
-  - development  # dev page
-  - /pages-(.*)/ # test every branch which starts with "pages-"
-
+  - source
 env:
   global:
   - NOKOGIRI_USE_SYSTEM_LIBRARIES=true # speeds up installation of html-proofer
   - GITHUB_REPO: "3a4oT/blog"
   - secure: "CrnyxIUtmHl/zwo7iVDgbQiNAMCmWjDA8OHAPsKKEhiuGV5mzrO+mNSf4C61epFSLFy8G4YKJM00uNUPQ7FCnHX5nPxezNRNIlAbQfSNxLvQNj0RWFGb7cES2VKUpY9pjj+aaQmSXVU7SGZXA1gIvK9jz8l3HvwnNuCpxlhHd40LJGTjmqTFzWUacY3hUGTtwci9UAGsZoAKL6JM4/f8mq6M7Lwu2RrrsWrA8iU5udfb90mT2RqRa8wFz2dJw3qgW2Ec2Yf8l2dsi6Xc7sDRDF9JxUgrUQYn71wUbNlZjhD6+841gMYhilkeSbk5f1qrdS5lH7GmPHpVcyWErmrhmOeK8LgaYYuJBEmnVIHMC75UbV3B0PlXlPz5t37J9HbxCHf5sEH02EB1a6d+V4PdtViK+JJLZXWBHZXKFQ8r4kfq6EYcqHlpl6kGU+ZUuunoVmesmqAz8zfEwMjXt/fS6SseFWIJiJmvj2Yvq7YW6Z2BppfE+urX3VeVNHJJ3fDMaYzpAOoTCcIbVSv29Pljr3MZ9XnlSvKqxpYDWKnB0iYTjw24Tdb6Zyg+B9YOmJkQzBreZkWUTDS9chbY22S/DXoMeK9EwNeNGqpbr3pPSCwxt9uHbAViWOL94brLxonPj7QQ2mtxgq3iMaac87gqueFv40mG2q4DqAZCjlFMQXQ="  # <-- from travis-encrypt
 
-sudo: false # route your build to the container-based infrastructure for a faster build
+gemfile:
+  - Gemfile
 
-deploy:
-  skip_cleanup: true
-  provider: script
-  script: ./scripts/deploy
-  on:
-    branch: development
+before_install:
+  - openssl aes-256-cbc -K $encrypted_d1eeda8dc2f5_key -iv $encrypted_d1eeda8dc2f5_iv -in travis.pub.enc -out .travis/travis_rsa -d
+script:
+  - bundle exec jekyll build
+  - bundle exec htmlproofer ./_site/
+after_success:
+  - eval "$(ssh-agent -s)" #start the ssh agent
+  - chmod 600 .travis/travis_rsa # this key should have push access
+  - ssh-add .travis/travis_rsa
+  - bundle exec rake site:deploy
