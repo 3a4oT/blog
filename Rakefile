@@ -1,3 +1,6 @@
+require 'rake'
+require 'yaml'
+
 drafts_dir = '_drafts'
 posts_dir  = '_posts'
 
@@ -66,4 +69,67 @@ desc 'list tasks'
 task :list do
   puts "Tasks: #{(Rake::Task.tasks - [Rake::Task[:list]]).join(', ')}"
   puts "(type rake -T for more detail)\n\n"
+end
+
+#############################################################################
+#
+# Modified version of jekyllrb Rakefile
+# https://github.com/jekyll/jekyll/blob/master/Rakefile
+#
+#############################################################################
+
+
+CONFIG = YAML.load(File.read('_config.yml'))
+USERNAME = CONFIG['Travic CI'] || ENV['GIT_NAME']
+REPO = CONFIG['repo'] || "3a4oT.github.com"
+DEST = CONFIG['destination'] || '_deploy'
+
+SOURCE_BRANCH = 'development'
+DESTINATION_BRANCH = 'gh-pages'
+
+def check_destination
+  unless Dir.exist? DEST
+    sh "git clone https://#{ENV['GIT_NAME']}:#{ENV['GITHUB_API_KEY']}@github.com/#{USERNAME}/#{REPO}.git #{DEST}"
+  end
+end
+
+namespace :site do
+  desc 'Generate the site and push changes to remote origin'
+  task :deploy do
+    # Detect pull request
+    if ENV['TRAVIS_PULL_REQUEST'].to_s.to_i > 0
+      puts 'Pull request detected. Not proceeding with deploy.'
+      exit
+    end
+
+    # Configure git if this is run in Travis CI
+    if ENV['TRAVIS']
+      puts 'Configure git'
+      sh "git config --global user.name '#{USERNAME}'"
+      sh "git config --global user.email '#{CONFIG['email']}'"
+      sh 'git config --global push.default simple'
+    end
+
+    # Make sure destination folder exists as git repo
+    check_destination
+
+    # sh "git checkout #{SOURCE_BRANCH}"
+    Dir.chdir(DEST) do
+      sh "git checkout #{DESTINATION_BRANCH}"
+      sh 'rm -rf *'
+    end
+
+    # Generate the site
+    sh "bundle exec jekyll build -d #{DEST}"
+
+    # Commit and push to github
+    sha = `git log`.match(/[a-z0-9]{40}/)[0]
+    Dir.chdir(DEST) do
+      sh "git status -s"
+      sh "git add --all ."
+      sh "git commit -m 'Updating to #{USERNAME}/#{REPO}@#{sha}.'"
+      sh "git push --quiet origin #{DESTINATION_BRANCH} --force"
+      puts "Pushed updated branch #{DESTINATION_BRANCH} to GitHub Pages"
+    end
+  end
 end
